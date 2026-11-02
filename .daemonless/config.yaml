@@ -1,0 +1,20 @@
+# dbuild configuration file
+# Full reference: https://github.com/daemonless/dbuild
+
+icon: ':material-web:'
+build:
+  architectures:
+    - amd64
+  variants:
+    - tag: latest
+      containerfile: Containerfile
+      default: true
+
+cit:
+  mode: screenshot
+  port: 3000
+  health: /login
+  screenshot: /login
+  edge_threshold: 0.002
+  wait: 60
+  ready: "Ready in"

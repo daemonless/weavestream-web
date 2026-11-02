@@ -1,0 +1,41 @@
+name: weavestream-web
+
+x-daemonless:
+  title: "Weavestream Web"
+  icon: ":material-web:"
+  category: "Productivity"
+  description: "Next.js web UI for Weavestream, an open-source self-hosted IT documentation and asset management platform."
+  upstream_url: "https://github.com/Weavestream/Weavestream"
+  web_url: "https://weavestream.io"
+  freshports_url: ""
+  user: "bsd"
+  mlock: false
+  upstream_binary: false
+  healthcheck: /login
+  appjail: true
+  community: "Discord:https://discord.gg/weavestream"
+
+  docs:
+    env:
+      PUID: "User ID for the web process"
+      PGID: "Group ID for the web process"
+      TZ: "Timezone for the container"
+      API_INTERNAL_URL: "Internal URL of the API container (e.g. http://api:4000)"
+      TRUST_PROXY_HOPS: "Trusted reverse proxy hops (default: 1)"
+    ports:
+      3000: "Next.js Web UI HTTP listener"
+
+services:
+  weavestream-web:
+    image: ghcr.io/daemonless/weavestream-web:latest
+    container_name: weavestream-web
+    restart: always
+
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+      - API_INTERNAL_URL=http://api:4000
+
+    ports:
+      - "3000:3000"

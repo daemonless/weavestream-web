@@ -1,0 +1,94 @@
+ARG BASE_VERSION=latest
+FROM ghcr.io/daemonless/base-exec:${BASE_VERSION} AS builder
+
+ARG FREEBSD_ARCH=amd64
+ARG PACKAGES="node24 npm-node24 ca_root_nss FreeBSD-clang FreeBSD-lld gmake pkgconf"
+ARG UPSTREAM_URL="https://api.github.com/repos/Weavestream/Weavestream/releases/latest"
+ARG UPSTREAM_JQ=".tag_name"
+
+ENV PNPM_HOME="/pnpm" \
+    PATH="/pnpm:$PATH" \
+    COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+
+RUN pkg update && pkg install -y ${PACKAGES} && \
+    pkg clean -ay && \
+    rm -rf /var/cache/pkg/* /var/db/pkg/repos/* && \
+    VERSION=$(fetch -qo - "${UPSTREAM_URL}" | jq -r "${UPSTREAM_JQ}" | sed 's/^v//') && \
+    if [ -z "${VERSION}" ] || [ "${VERSION}" = "null" ]; then \
+        VERSION=$(fetch -v -o /dev/null "https://github.com/Weavestream/Weavestream/releases/latest" 2>&1 | sed -n 's|^.*redirect to .*/releases/tag/v\{0,1\}||p' | head -1); \
+    fi && \
+    if [ -z "${VERSION}" ]; then echo "ERROR: could not resolve release version" >&2; exit 1; fi && \
+    echo "Building Weavestream Web ${VERSION}" && \
+    mkdir -p /repo && \
+    fetch -qo /tmp/weavestream.tar.gz "https://github.com/Weavestream/Weavestream/archive/refs/tags/v${VERSION}.tar.gz" && \
+    tar -xzf /tmp/weavestream.tar.gz -C /repo --strip-components=1 && \
+    rm /tmp/weavestream.tar.gz && \
+    mkdir -p /app && \
+    echo "${VERSION}" > /app/version
+
+WORKDIR /repo
+
+ENV NEXT_TELEMETRY_DISABLED=1
+
+RUN corepack enable && \
+    sed -i '' 's/  os:/  os:\n    - freebsd/' pnpm-workspace.yaml && \
+    sed -i '' 's/argon2: true/argon2: true\n  esbuild: true/' pnpm-workspace.yaml && \
+    pnpm install --prod=false && \
+    pnpm --filter @weavestream/shared build && \
+    pnpm --filter @weavestream/mobile build && \
+    cd apps/web && node scripts/check-mobile-bundle.mjs && ./node_modules/.bin/next build --webpack
+
+# ───── runner ─────
+FROM ghcr.io/daemonless/base-exec:${BASE_VERSION}
+
+ARG FREEBSD_ARCH=amd64
+ARG PACKAGES="node24 ca_root_nss curl"
+ARG UPSTREAM_URL="https://api.github.com/repos/Weavestream/Weavestream/releases/latest"
+ARG UPSTREAM_JQ=".tag_name"
+
+LABEL org.opencontainers.image.title="Weavestream Web" \
+      org.opencontainers.image.description="Next.js web UI for Weavestream, an open-source self-hosted IT documentation and asset management platform." \
+      org.opencontainers.image.source="https://github.com/daemonless/weavestream-web" \
+      org.opencontainers.image.url="https://weavestream.io" \
+      org.opencontainers.image.documentation="https://docs.weavestream.io" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later" \
+      org.opencontainers.image.vendor="daemonless" \
+      org.opencontainers.image.authors="daemonless" \
+      io.daemonless.category="Productivity" \
+      io.daemonless.port="3000" \
+      io.daemonless.arch="${FREEBSD_ARCH}" \
+      io.daemonless.base="base-exec" \
+      io.daemonless.upstream-url="${UPSTREAM_URL}" \
+      io.daemonless.upstream-jq="${UPSTREAM_JQ}" \
+      io.daemonless.packages="${PACKAGES}"
+
+RUN pkg update && pkg install -y ${PACKAGES} && \
+    pkg clean -ay && \
+    rm -rf /var/cache/pkg/* /var/db/pkg/repos/*
+
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000
+
+WORKDIR /app
+
+COPY --from=builder /app/version /app/version
+COPY --from=builder /repo/node_modules ./node_modules
+COPY --from=builder /repo/apps/web/.next ./apps/web/.next
+COPY --from=builder /repo/apps/web/public ./apps/web/public
+COPY --from=builder /repo/apps/web/mobile-shell ./apps/web/mobile-shell
+COPY --from=builder /repo/apps/web/package.json ./apps/web/package.json
+COPY --from=builder /repo/apps/web/next.config.js ./apps/web/next.config.js
+COPY --from=builder /repo/apps/web/node_modules ./apps/web/node_modules
+COPY --from=builder /repo/package.json ./package.json
+
+COPY root/ /
+
+RUN chmod +x /daemonless/libexec/* /daemonless/init.d/* 2>/dev/null || true && \
+    chown -R bsd:bsd /app
+
+WORKDIR /app/apps/web
+
+EXPOSE 3000
+
+CMD ["/daemonless/libexec/weavestream-web"]
