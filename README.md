@@ -23,112 +23,6 @@ Next.js web UI for Weavestream, an open-source self-hosted IT documentation and 
 | :--- | :--- | :--- |
 | `latest` | **FreeBSD Port**. Built from latest FreeBSD packages. | Most users — recommended. |
 
-## Prerequisites
-Before deploying, ensure your host environment is ready. See the [Quick Start Guide](https://daemonless.io/guides/quick-start) for host setup instructions.
-
-## Deployment
-
-### Podman Compose
-
-```yaml
-services:
-  weavestream-web:
-    image: "ghcr.io/daemonless/weavestream-web:latest"
-    container_name: weavestream-web
-    environment:
-      - PUID=1000  # User ID for the web process
-      - PGID=1000  # Group ID for the web process
-      - TZ=UTC  # Timezone for the container
-      - API_INTERNAL_URL=http://api:4000  # URL the web container reaches the API at (default: http://127.0.0.1:4000, the host-network stack)
-      # - TRUST_PROXY_HOPS=  # Trusted reverse proxy hops (default: 1)
-    ports:
-      - "3000:3000"
-    healthcheck:
-      test: ["CMD", "/login"]
-    # always (not unless-stopped) so FreeBSD's podman rc.d auto-starts it at boot
-    restart: always
-```
-
-Save as `compose.yaml`, then run `podman-compose up -d`.
-
-### AppJail Director
-**.env**:
-
-```
-# .env
-
-DIRECTOR_PROJECT=weavestream-web
-PUID=1000
-PGID=1000
-TZ=UTC
-API_INTERNAL_URL=http://api:4000
-```
-
-**appjail-director.yml**:
-
-```yaml
-# appjail-director.yml
-
-options:
-  - virtualnet: ':<random> default'
-  - nat:
-services:
-  weavestream-web:
-    name: weavestream_web
-    options:
-      - container: 'args:--pull'
-      - expose: '3000:3000 proto:tcp'
-    oci:
-      user: root
-      environment:
-        - PUID: !ENV '${PUID}'
-        - PGID: !ENV '${PGID}'
-        - TZ: !ENV '${TZ}'
-        - API_INTERNAL_URL: !ENV '${API_INTERNAL_URL}'
-```
-
-**Makejail**:
-
-```
-# Makejail
-
-ARG tag=latest
-
-OPTION container=boot
-OPTION overwrite=force
-OPTION from=ghcr.io/daemonless/weavestream-web:${tag}
-```
-
-Save the files above, then run `appjail-director up`.
-
-
-> [!WARNING]
-> Exposing ports in AppJail means that your service can be reached from remote hosts. If that is not your intention, do not expose the ports and communicate with the service using the jail's IPv4 address or hostname assigned by the virtual network.
->
-> To avoid exposing ports, just remove the `expose` option in your `appjail-director.yml` or from your command-line arguments.
-
-### Bastille
-
-> [!WARNING]
-> Bastille's OCI support is **experimental**. It requires `buildah` and shares the host network stack (`inherit`). Mount volumes with `--volume HOST JAIL`; without it, image-declared volumes are stored under `${bastille_volumesdir}/${jail}`.
-
-```yaml
-services:
-  weavestream-web:
-    name: weavestream-web
-    image: "ghcr.io/daemonless/weavestream-web:latest"
-    network:
-      - mode: host
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=UTC
-      - API_INTERNAL_URL=http://api:4000
-```
-
-Save as `bastille-compose.yml`, then run `bastille up`.
-Open `http://<server>:3000` from another machine (the server's own browser can't use a published port).
-
 ## Parameters
 
 ### Environment Variables
@@ -146,6 +40,8 @@ Open `http://<server>:3000` from another machine (the server's own browser can't
 | Port | Protocol | Description |
 |------|----------|-------------|
 | `3000` | TCP | Next.js Web UI HTTP listener |
+
+This image is part of the [Weavestream Stack](https://daemonless.io/images/weavestream).
 
 **Architectures:** amd64
 **User:** `bsd` (UID/GID via PUID/PGID, defaults to 1000:1000)

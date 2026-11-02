@@ -3,6 +3,7 @@ name: weavestream-web
 x-daemonless:
   title: "Weavestream Web"
   icon: ":material-web:"
+  class: part  # installed by the weavestream stack; alone it has no database
   category: "Productivity"
   description: "Next.js web UI for Weavestream, an open-source self-hosted IT documentation and asset management platform."
   upstream_url: "https://github.com/Weavestream/Weavestream"
@@ -14,6 +15,7 @@ x-daemonless:
   healthcheck: /login
   appjail: true
   community: "Discord:https://discord.gg/weavestream"
+  notes: "This image is part of the [Weavestream Stack](https://daemonless.io/images/weavestream)."
 
   docs:
     env:
