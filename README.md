@@ -39,7 +39,7 @@ services:
       - PUID=1000  # User ID for the web process
       - PGID=1000  # Group ID for the web process
       - TZ=UTC  # Timezone for the container
-      - API_INTERNAL_URL=http://api:4000  # Internal URL of the API container (e.g. http://api:4000)
+      - API_INTERNAL_URL=http://api:4000  # URL the web container reaches the API at (default: http://127.0.0.1:4000, the host-network stack)
       # - TRUST_PROXY_HOPS=  # Trusted reverse proxy hops (default: 1)
     ports:
       - "3000:3000"
@@ -138,7 +138,7 @@ Open `http://<server>:3000` from another machine (the server's own browser can't
 | `PUID` | `1000` | User ID for the web process |
 | `PGID` | `1000` | Group ID for the web process |
 | `TZ` | `UTC` | Timezone for the container |
-| `API_INTERNAL_URL` | `http://api:4000` | Internal URL of the API container (e.g. http://api:4000) |
+| `API_INTERNAL_URL` | `http://api:4000` | URL the web container reaches the API at (default: http://127.0.0.1:4000, the host-network stack) |
 | `TRUST_PROXY_HOPS` | `` | Trusted reverse proxy hops (default: 1) |
 
 ### Ports

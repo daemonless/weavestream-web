@@ -36,13 +36,18 @@ WORKDIR /repo
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Upstream lists every desktop OS under supportedArchitectures, so pnpm fetches
+# all of their native binaries: only this platform's are wanted.
 RUN corepack enable && \
-    sed -i '' 's/  os:/  os:\n    - freebsd/' pnpm-workspace.yaml && \
+    sed -i '' '/^supportedArchitectures:/,/^allowBuilds:/{/^allowBuilds:/!d;}' pnpm-workspace.yaml && \
+    printf 'supportedArchitectures:\n  os:\n    - freebsd\n  cpu:\n    - %s\n' "$([ "${FREEBSD_ARCH}" = aarch64 ] && echo arm64 || echo x64)" >> pnpm-workspace.yaml && \
     sed -i '' 's/argon2: true/argon2: true\n  esbuild: true/' pnpm-workspace.yaml && \
     pnpm install --prod=false && \
     pnpm --filter @weavestream/shared build && \
     pnpm --filter @weavestream/mobile build && \
-    cd apps/web && node scripts/check-mobile-bundle.mjs && ./node_modules/.bin/next build --webpack
+    cd apps/web && node scripts/check-mobile-bundle.mjs && ./node_modules/.bin/next build --webpack && \
+    rm -rf .next/cache && \
+    cd /repo && CI=true pnpm install --prod
 
 # ───── runner ─────
 FROM ghcr.io/daemonless/base-exec:${BASE_VERSION}
@@ -78,20 +83,19 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-COPY --from=builder /app/version /app/version
-COPY --from=builder /repo/node_modules ./node_modules
-COPY --from=builder /repo/apps/web/.next ./apps/web/.next
-COPY --from=builder /repo/apps/web/public ./apps/web/public
-COPY --from=builder /repo/apps/web/mobile-shell ./apps/web/mobile-shell
-COPY --from=builder /repo/apps/web/package.json ./apps/web/package.json
-COPY --from=builder /repo/apps/web/next.config.js ./apps/web/next.config.js
-COPY --from=builder /repo/apps/web/node_modules ./apps/web/node_modules
-COPY --from=builder /repo/package.json ./package.json
+COPY --from=builder --chown=bsd:bsd /app/version /app/version
+COPY --from=builder --chown=bsd:bsd /repo/node_modules ./node_modules
+COPY --from=builder --chown=bsd:bsd /repo/apps/web/.next ./apps/web/.next
+COPY --from=builder --chown=bsd:bsd /repo/apps/web/public ./apps/web/public
+COPY --from=builder --chown=bsd:bsd /repo/apps/web/mobile-shell ./apps/web/mobile-shell
+COPY --from=builder --chown=bsd:bsd /repo/apps/web/package.json ./apps/web/package.json
+COPY --from=builder --chown=bsd:bsd /repo/apps/web/next.config.js ./apps/web/next.config.js
+COPY --from=builder --chown=bsd:bsd /repo/apps/web/node_modules ./apps/web/node_modules
+COPY --from=builder --chown=bsd:bsd /repo/package.json ./package.json
 
 COPY root/ /
 
-RUN chmod +x /daemonless/libexec/* /daemonless/init.d/* 2>/dev/null || true && \
-    chown -R bsd:bsd /app
+RUN chmod +x /daemonless/libexec/* /daemonless/init.d/* 2>/dev/null || true
 
 WORKDIR /app/apps/web
 

@@ -20,7 +20,7 @@ x-daemonless:
       PUID: "User ID for the web process"
       PGID: "Group ID for the web process"
       TZ: "Timezone for the container"
-      API_INTERNAL_URL: "Internal URL of the API container (e.g. http://api:4000)"
+      API_INTERNAL_URL: "URL the web container reaches the API at (default: http://127.0.0.1:4000, the host-network stack)"
       TRUST_PROXY_HOPS: "Trusted reverse proxy hops (default: 1)"
     ports:
       3000: "Next.js Web UI HTTP listener"
