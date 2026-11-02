@@ -45,6 +45,7 @@ RUN corepack enable && \
     pnpm install --prod=false && \
     pnpm --filter @weavestream/shared build && \
     pnpm --filter @weavestream/mobile build && \
+    sed -i '' 's/\[0, 200, 400, 800, 1500, 2400\]/[0, 200, 400]/' apps/web/src/lib/server-api/core.ts && \
     cd apps/web && node scripts/check-mobile-bundle.mjs && ./node_modules/.bin/next build --webpack && \
     rm -rf .next/cache && \
     cd /repo && CI=true pnpm install --prod
