@@ -1,11 +1,11 @@
 {
-  "generated": "2026-11-05T20:57:32Z",
+  "generated": "2026-11-08T21:36:21Z",
   "image": "weavestream-web",
   "tags": {
     "latest": {
-      "app_version": "1.13.0",
+      "app_version": "1.13.1",
       "arch": "amd64",
-      "generated": "2026-11-05T20:55:47Z",
+      "generated": "2026-11-08T21:35:02Z",
       "packages": {
         "dotnet": [],
         "freebsd": [
