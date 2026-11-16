@@ -1,11 +1,11 @@
 {
-  "generated": "2026-11-08T21:36:21Z",
+  "generated": "2026-11-16T22:59:35Z",
   "image": "weavestream-web",
   "tags": {
     "latest": {
-      "app_version": "1.13.1",
+      "app_version": "1.13.2",
       "arch": "amd64",
-      "generated": "2026-11-08T21:35:02Z",
+      "generated": "2026-11-16T22:58:04Z",
       "packages": {
         "dotnet": [],
         "freebsd": [
@@ -432,7 +432,7 @@
               "BSD2CLAUSE"
             ],
             "name": "pkg",
-            "version": "2.8.4"
+            "version": "2.9.2"
           },
           {
             "licenses": [
@@ -7601,7 +7601,7 @@
           {
             "name": "weavestream",
             "purl": "",
-            "version": "1.13.0"
+            "version": "1.13.2"
           },
           {
             "name": "webidl-conversions",
